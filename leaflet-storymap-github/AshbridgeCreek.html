@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"/>
+  <title>AshbridgesCreek-leaflet-storymap</title>
+  
+   <!-- Load Leaflet from a https CDN, not http. Look for updates at http://leafletjs.com/download.html -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+  
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/flick/jquery-ui.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+  
+  <!-- load Font-Awesome used for some page elements like fa-chevron-down (down arrow) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
+
+  <!-- Load leaflet.extra-markers from local directory -->
+  <script src="markers/leaflet.extra-markers.min.js"></script>
+  <link rel="stylesheet" href="markers/leaflet.extra-markers.min.css">
+
+  <!-- load Bootsrap js and css  -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  
+  <!-- Load perfect-scrollbar -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.perfect-scrollbar/0.6.10/css/perfect-scrollbar.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.perfect-scrollbar/0.6.10/js/min/perfect-scrollbar.jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.perfect-scrollbar/0.6.10/js/min/perfect-scrollbar.min.js"></script>
+  
+  <style>
+
+        body {
+            padding: 0px;
+            margin: 0px;
+            font-family: "Helvetica", sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            left: 0;
+            width: 70vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #map > div.leaflet-control-container > div.leaflet-top.leaflet-left {
+          top:50px;
+        }
+    
+        #map > div.leaflet-control-container > div.leaflet-top.leaflet-right {
+          top:50px;
+        }
+
+        #narration {
+            position: absolute;
+            width: 30vw;
+            min-width: 300px;
+            right: 0px;
+            height: 100vh;
+            overflow: auto;
+            z-index: 99;
+            background: rgba(254,254,254, 1.0); /* to apply opacity background only. */
+            padding-top: 100px; /*Adjust if Title header needs more space */
+        }
+
+
+        #contents {
+            padding: 0%;
+            width: 100%;
+            margin-top: 0px; /*Adjust if Title header needs more space */
+            height: 100%; /* Adjust to fit max Description length, one setting for all; alternative is 100% */
+            overflow-y: scroll;
+            overflow-x: hidden;
+        }
+
+        #contents .space-at-the-top {
+            height: 30px;
+            margin: 0px;
+        }
+
+        #contents .space-at-the-bottom {
+            height: 600px;
+            margin: 0px;
+            text-align: center;
+            padding-top: 70px;
+        }
+
+        #chapter {
+            position: absolute;
+            z-index: 999;
+            margin: 10px;
+            display: block;
+            text-align: center;
+            color: #fff;
+        }
+
+        #title {
+            position: absolute;
+            right: 0px;
+          top:50px;
+            background-color: white;
+            width: 30vw;
+            min-width: 300px;
+            z-index: 100;
+            margin: 0px;
+            padding: 0px;
+            padding-bottom:10px
+        }
+
+        h3 {
+            margin-bottom: 0px;
+        }
+
+        .image-container {
+            /* margin + padding = imageContainerMargin in script.js */
+            /* Important for scrolling! */
+            margin: 25px 0 0 0;
+            padding: 25px 0 0 0;
+            text-align: center;
+        }
+
+        .image-container img {
+            height: auto;
+            width: auto;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+      /* Use EXIF data from the image */
+      image-orientation: from-image;
+            /* Three lines that center vertically */
+            position: relative;
+        }
+
+        .img-holder {
+        display:inline-block;
+            padding:10px;
+            width: 100%;
+        }
+
+        .title-text {
+            font-weight: bold;
+            text-align: center;
+            margin: 10px;
+        }
+
+        .chapter-header {
+            display: block;
+            text-align: center;
+            font-size: 150%;
+            font-weight:bold;
+            margin-top:15px
+        }
+
+        .caption {
+            font-size: 9pt;
+            padding:0 10px 0 10px;
+        }
+
+        .description {
+            text-align: justify;
+            font-size: 11pt;
+            padding: 30px;
+            position: relative;
+        }
+
+        .inFocus {
+            opacity: 1.0;
+            background-color: #f0f0f0;
+        }
+
+        .outFocus {
+            opacity: 0.3;
+            background-color: white;
+        }
+
+        /* Bootstrap */
+        .navbar {
+          width:100%;
+          margin-bottom:0;
+          position: fixed;
+          z-index: 1000;
+        }
+		
+		.container-fluid {
+		  padding-right:0;
+		}
+
+        #navbar2 > ul > li.active > a {
+          color: #fff;
+          font-weight: bold;
+          text-decoration: underline;
+		  opacity:1
+        }
+
+        #navbar2 > ul > li > a {
+          color: #fff;
+		  font-weight: bold;
+		  opacity:0.6
+        }
+		
+		#navbar2 > ul > li > a:hover {
+		  opacity:0.4
+        }
+
+        .navbar-brand {
+          padding: 0px;
+        }
+
+        .navbar-brand>img {
+          height: 100%;
+          width: auto;
+        }
+
+        .navbar-default .navbar-nav>.active>a, .navbar-default .navbar-nav>.active>a:focus, .navbar-default .navbar-nav>.active>a:hover {
+          background-color: transparent;
+        }
+
+        #navbar2 > ul {
+        margin-bottom:0
+        }
+
+        /* Basemap slider CSS */
+        #basemapslidercontainer {
+          position: absolute;
+          left: 10px;
+          bottom: 50px;
+          z-index: 1000000;
+          background: #fff;
+          border-radius: 2px;
+        }
+        
+        #basemapslidercontainer p{
+          font-weight:bold; 
+          font-size:12px;
+          margin:2px;
+          display:inline-block
+        }   
+        
+        /* Customize jQuery Slider UI - Handle color and shape*/  
+        .ui-slider .ui-slider-handle {
+            width: 20px;
+            height: 20px;
+            background: #00C5CD;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+        
+        #basemapslider{
+          margin: 5px 16px 10px 16px;
+          height: 10px;
+          width:200px;
+        }
+        
+        /* About Button */
+        #infoButton {
+          position:absolute;
+          left: 150px;
+          top: 15px;
+          color: #000000;
+          font-weight:bold; 
+          cursor: pointer;
+        }
+        
+        #infoClose{
+          position: absolute;
+          width: 600px;
+          height:auto;
+          background:#fff;
+          z-index:1000002;
+          cursor: pointer;
+          color:#000;
+          text-align: center;
+          padding:8px;
+          display:none;
+          left: 0;
+          right: 0;
+          bottom:225px;
+          margin: auto;
+		  border-top-width: 1px;
+		  border-top-style: solid;
+		  border-top-color: #d3d3d3;		  
+        }
+
+        #infoBox{
+          position: absolute;
+          width: 600px;
+          height:auto;
+          background:#fff;
+          z-index:1000000;
+          color:#999999;
+          text-align: center;
+          padding:8px;
+          display:none;
+          top:100px;
+          left: 0;
+          right: 0;
+          bottom:260px;
+          margin: auto;
+        }
+        
+        #infoBox p {
+          margin: 5px;
+          margin-left:15px;
+          padding:0px;
+          opacity:1;
+          color:#000;
+          opacity:1;
+          text-align: left;
+        } 
+
+        /* Resize bootsrap and force collapse for Mobile and tablets */
+        @media (max-width: 991px) {
+          .navbar-header {
+              float: none;
+          }
+          .navbar-left,.navbar-right {
+              float: none !important;
+          }
+          .navbar-toggle {
+              display: block;
+          }
+          .navbar-collapse {
+              border-top: 1px solid transparent;
+              box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+          }
+          .navbar-fixed-top {
+              top: 0;
+              border-width: 0 0 1px;
+          }
+          .navbar-collapse.collapse {
+              display: none!important;
+          }
+          .navbar-nav {
+              float: none!important;
+              margin-top: 7.5px;
+          }
+          .navbar-nav>li {
+              float: none;
+          }
+          .navbar-nav>li>a {
+              padding-top: 10px;
+              padding-bottom: 10px;
+          }
+          .collapse.in{
+              display:block !important;
+          }
+        }
+
+        /* Resize and position page elements and force collapse for Mobile and tablets */
+        @media (max-width: 768px) {
+          ::-webkit-scrollbar {
+          display: none;
+          }
+
+          #map {
+          width: 100%;
+          height:50%;
+          }
+		  
+		  .leaflet-control-zoom {
+		  display: none;
+		  }
+
+          #title {
+		  position:fixed;
+          top:35%;
+          width: 100%;
+          }
+
+          #title > h3 {
+          font-size: 20px;
+          }  
+
+          #narration {
+          position:fixed;
+		  width: 100%;
+          top:35%;
+          min-width: 0;
+          padding-top:0;
+          padding:4px;
+		  bottom:0;
+          }
+
+          .description {
+          padding: 0;
+          padding-bottom: 10px;
+          }
+
+          #infoClose{
+          width: 100%; 
+          bottom:0; 
+		  border-top-width: 1px;
+		  border-top-style: solid;
+		  border-top-color: #d3d3d3;		  
+          }
+
+          #infoBox{
+          width: 100%;
+          top:0;
+          bottom:35px;    
+          }
+          
+          #basemapslidercontainer {
+          bottom:0;
+          margin:0;
+          padding:0;
+          width:100%;
+          left:0;
+		  position:fixed;
+          }
+
+          #basemapslider{
+          width:90%;
+          }
+        }   
+    
+  </style>
+
+</head>
+
+<body>
+<!-- Static navbar -->
+
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar2">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>        
+		<a class="navbar-brand" href="http://www.lostrivers.ca" target="_blank"><img src="http://www.lostrivers.ca/img/logo.png" alt="Lost Rivers">
+        </a>
+      </div>
+      <p id="infoButton">ABOUT THE HISTORICAL MAP</a></p>
+      <div id="navbar2" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          <li ><a href="disappearing.html" style="color:#000000;">DISAPPEARING RIVERS OF TORONTO</a></li>         
+          <li ><a href="AshbridgeBay.html" style="background-color:#ff7800;">ASHBRIDGE'S BAY WATERSHED WALK</a></li>
+          <li class="active"><a href="AshbridgeCreek.html" style="background-color:#007F00">ASHBRIDGE'S CREEK WALK</a></li>
+          <li><a href="TomlinCreek.html" style="background-color:#551A8B;">TOMLIN CREEK WALK</a></li>
+        </ul>
+      </div>
+      <!--/.nav-collapse -->
+    </div>
+    <!--/.container-fluid -->
+  </nav>
+
+	  
+  <div id="title" class="title-text">
+    <h3>Ashbridge’s Creek Walk</h3>
+    <small>Scroll down to view stops along the tour path <i class="fa fa-chevron-down"></i></small>
+  </div>
+
+  <!--scrollable side panel container -->
+  <div id="narration">
+    <div id="contents">
+      <div id="space-at-the-top" class="space-at-the-top"></div>
+    </div>
+  </div>
+
+  <!-- Opacity slider container -->
+  <div id="basemapslidercontainer">
+      <!-- Label -->
+      <label class="control-label">Historical Map Overlay</label>
+      <br>
+      <!-- Slider labels -->
+      <p>HIDDEN</p><p style="right:0; position: absolute">VISIBLE</p>
+      <!-- Slider  -->
+        <div id="basemapslider"></div>
+  </div>
+ 
+  <!-- More Info - About button Infobox -->
+    <div id='infoClose'><b>CLOSE</b>
+    </div>
+    <div id='infoBox' > 
+    <br>
+	<!-- Title -->
+    <H3 style="text-align: center;">About the historical map</H3>
+    <br>
+	<!-- Contents-->
+    <p>The 1882 McMurrich “Plan of the City of Toronto” used here as the historical map overlay, is neither as precise topographically as the later Department of Military and Defence series, nor as detailed as Goad’s “Atlas of the City of Toronto” series, nor as old as Tremaine’s “Map of the County of York, Canada West” (1860) or the Miles & Company “Illustrated Historical Atlas of the County of York” (1878). McMurrich’s map is a compromise between these poles. Its advantages are its accurate portrayal of Ashbridge’s Bay from a time before this water body was altered by urban development, and its inclusion of creeks that flowed to the bay. Within a decade after the McMurrich map’s completion, the Don Improvement Project kicked off a half century of landfilling and altering that have left Ashbridge’s Bay unrecognizable and east end creeks almost entirely buried. Of additional interest to us is its suggestive, whimsical illustration of the broken landscape of the area north of the eastern Beaches.</p>
+    </div>
+ 
+  <!-- Map container -->
+  <div id="map">
+  </div>
+
+
+  <script>
+    // Value must match Margin + padding set in css for .image-container
+    var imageContainerMargin = 50;  
+
+    // This watches for the scrollable container
+    var scrollPosition = 0;
+    $('div#contents').scroll(function() {
+      scrollPosition = $(this).scrollTop();
+    });
+
+    function initMap() {
+
+      // This creates the Leaflet map with a generic start point, because code at bottom automatically fits bounds to all markers
+      var map = L.map('map', {
+        center: [0, 0],
+        zoom: 5,
+    		maxZoom: 17,
+    		minZoom: 14,
+      });
+
+      // This displays a base layer map (other options available)
+      // Using Carto Positron basemap
+      // https://leaflet-extras.github.io/leaflet-providers/preview/
+      //var lightAll = new L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+       //attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> //contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+     //}).addTo(map);
+	 
+	 var OpenStreetMap_HOT = L.tileLayer('http://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+		maxZoom: 19,
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>'
+	}).addTo(map);;
+	  
+	  //Overlay layer and slider controls
+	  $("#basemapslider").slider({
+            animate: true,
+            value: 0.5,
+            orientation: "horizontal",
+            min: 0,
+            max: 1,
+            step: 0.1,
+            slide: function (event, ui) {
+                mytile.setOpacity(ui.value);
+            }
+       });
+
+
+	   // linking to the tiles created with QTiles in QGIS
+	   // the custom tiles are saved in a folder called "tiles"
+     // must set tile to use for missing tiles using errorTileUrl parameter
+// FOR GITHUB VERSION CHANGED SO TILES ARE ACCESSED FROM MERCATOR SERVER INSTEAD OF LOCAL OR RELATIVE PATH
+ //     var mytile =L.tileLayer('tiles/{z}/{x}/{y}.png', {
+		var mytile =L.tileLayer('http://mercator.geog.utoronto.ca/georia/LostRivers/leaflet-storymap_webtest/tiles/{z}/{x}/{y}.png', {
+        maxZoom: 17,
+        minZoom: 14,
+        attribution: 'Generated by QTiles',
+		    opacity: 0.5,
+        errorTileUrl: 'tiles/missing.png'
+       }).addTo(map);
+
+      // This customizes link to view source code; add your own GitHub repository
+      map.attributionControl
+      .setPrefix('View <a href="http://github.com/jackdougherty/leaflet-storymap" target="_blank">code on GitHub</a>, created with <a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+
+      // This loads the point GeoJSON map data file from a local folder
+      // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+      $.getJSON('data/AB_Creek_Points_WGS.geojson', function(data) {
+        var points = L.geoJson(data, {
+          onEachFeature: function (feature, layer) {
+            (function(layer, properties) {
+              // This creates numerical icons to match the attribute NUMBER numbers
+              // Setting icon using leaflet.extra-markers https://github.com/coryasilva/Leaflet.ExtraMarkers
+              var numericMarker = L.ExtraMarkers.icon({
+                icon: 'fa-number',
+                number: feature.properties['NUMBER'],
+                markerColor: 'green'
+              });
+              layer.setIcon(numericMarker);
+
+              // Sets the title text from the geojson property Name
+              var chapter = $('<p></p>', {
+                text: feature.properties['Name'],
+                class: 'chapter-header'
+              });
+
+              // Sets the first image from the geojson property PIC_URL
+              var image = $('<img>', {
+                src: feature.properties['PIC_URL'],
+              });
+
+              // The image is placed inside an anchor that allows a user to click and display the picture in a new tab
+              var imgHolder = $('<a>', {
+                href: feature.properties['PIC_URL'],
+                class: 'img-holder',
+                target: "_blank",
+              });
+              imgHolder.append(image);
+
+              // Sets the image caption content from the geojson property SHORT_DESC
+              var caption = $('<p></p>', {
+                text: feature.properties['SHORT_DESC'],
+                class: 'caption'
+              });
+
+              // Sets the text content for the longer discription from the geojson property DESCRIPTION
+              var description = $('<p></p>', {
+                text: feature.properties['DESCRIPTION'],
+                class: 'description'
+              });
+
+              // controls behaviour for second image
+              // if the json feature has a property 'pic_url_2' then display it
+              if (feature.properties['PIC_URL_2']){
+                var image2 = $('<img>', {
+                src: feature.properties['PIC_URL_2'],
+                });
+                
+                var imgHolder2 = $('<a>', {
+                href: feature.properties['PIC_URL_2'],
+                class: 'img-holder',
+                target: "_blank",
+                });
+                imgHolder2.append(image2);
+              };
+          
+              // controls behaviour for second description
+              // if the json feature has a property 'DESC2' value then display it
+              // if not using an if statement then a placeholder div is invluded in the contents
+              if (feature.properties['DESC2']){
+              // Sets the text content for the second discription from the geojson property DESC2
+              var description2 = $('<p></p>', {
+                text: feature.properties['DESC2'],
+                class: 'description'
+              });
+              };
+
+              var container = $('<div></div>', {
+                id: 'container' + feature.properties['NUMBER'],
+                class: 'image-container'
+              });
+
+              // Appending the contents to be placed in the #contents div
+              container.append(chapter).append(imgHolder).append(caption).append(description).append(imgHolder2).append(description2);
+              $('#contents').append(container);
+
+              // declaring global variables to be used below
+              var i;
+              var areaTop;
+              var areaBottom; 
+
+              // Function tied to when all images load or window is resized, it only initalises when all images have loaded or window resizes
+              function updateScrollTop() {
+              
+              // height is based on the relative height from top of the container div
+              areaTop = 0;
+
+              // Calculating total height of blocks above active
+              for (i = 1; i < feature.properties['NUMBER']; i++) {
+                areaTop += $('div#container' + i).height() + imageContainerMargin;
+              }
+
+              areaBottom = areaTop + $('div#container' + feature.properties['NUMBER']).height();
+
+              $('div#contents').scroll(function() {
+                if ($(this).scrollTop() >= areaTop && $(this).scrollTop() < areaBottom) {
+                  $('.image-container').removeClass("inFocus").addClass("outFocus");
+                  $('div#container' + feature.properties['NUMBER']).addClass("inFocus").removeClass("outFocus");
+
+                  // when the contents scroll down zoom to the associated point
+                  // First pulling lat/long from the geojson for the center and set to use zoom 16 for all
+                  map.flyTo([feature.geometry.coordinates[1], feature.geometry.coordinates[0] ], 16);
+                }
+              });
+              }
+
+              // Initialize scrolltop function when images load
+              $("img").on("load", updateScrollTop);
+              // Update container heights if the browser window changes size
+              window.addEventListener('resize', updateScrollTop);    
+
+              // Make markers clickable
+              // When clicked #contents div scrolls to top of the #container corresponding to point clicked
+              layer.on('click', function() {
+                $("div#contents").animate({scrollTop: areaTop + 1 + "px"});
+              });
+			  			  
+            })(layer, feature.properties);
+          }
+        });
+		
+        $('#contents').append("<div class='space-at-the-bottom'><a href='#space-at-the-top'><i class='fa fa-chevron-up'></i></br><small>Top</small></a></div>");
+        
+        // fits the map view to fit the bounds of hte points layer when the map loads
+        map.fitBounds(points.getBounds());
+
+        // add points layer to the map
+        points.addTo(map);
+      });
+
+	  // Creating layer toggle controls
+		var controlLayers = L.control.layers( null, null, {
+		  position: "topright",
+		  collapsed: true
+		}).addTo(map);	  
+ 
+    // loading the shoreline geojson layer 
+	  var shoreline;
+	  // This loads the path GeoJSON map data file from a local folder
+      // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+        $.getJSON('data/shoreline_fc.geojson', function(json) {
+           shoreline = L.geoJson(json, {
+            // style path 
+            // http://leafletjs.com/examples/geojson/
+            style:{
+              "color": "#1a7485",
+			  "weight": 1.5,
+			  "opacity": 0.9,
+            }
+            // add path layer to the map
+            }).addTo(map);
+			//add layer to the layer controls to allow toggle on and off
+			controlLayers.addOverlay(shoreline, 'Shoreline 1882 (McMurrich)');
+      });	  	  
+
+    // loading the rivers geojson layer    
+	  var rivers;
+	  // This loads the path GeoJSON map data file from a local folder
+      // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+        $.getJSON('data/lost_rivers_john_fc.geojson', function(json) {
+           rivers = L.geoJson(json, {
+            // style path 
+            // http://leafletjs.com/examples/geojson/
+            style:{
+              "color": "#1a7485",
+			  "weight": 1.5,
+			  "opacity": 0.9,
+            }
+            // add path layer to the map
+            }).addTo(map);
+			//add layer to the layer controls to allow toggle on and off
+			controlLayers.addOverlay(rivers, 'Rivers Plotted By Lost Rivers Project');
+      });	  
+      
+      // loading the Tomlin Creek walking layer
+	    // This loads the path GeoJSON map data file from a local folder
+      // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+        $.getJSON('data/TomlinCreekWalk_Path_WGS_qgis.geojson', function(json) {
+            L.geoJson(json, {
+            // style path 
+            // http://leafletjs.com/examples/geojson/
+            style:{
+              "color": "#551A8B",
+			  "weight": 4,
+        "opacity": 0.4,
+            }
+            // add path layer to the map
+            }).addTo(map);
+      });
+	  
+      // loading the Ashbridges watershed walking layer
+      // This loads the path GeoJSON map data file from a local folder
+      // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+        $.getJSON('data/AB_Watershed_Path_WGS_qgis.geojson', function(json) {
+            L.geoJson(json, {
+            // style path 
+            // http://leafletjs.com/examples/geojson/
+            style:{
+              "color": "#ff7800",
+			  "weight": 4,
+        "opacity": 0.4,
+            }
+            // add path layer to the map
+            }).addTo(map);
+      });	
+
+      // loading the Ashbridges Creek walking layer, loaded last so that it renders above the other layers
+      // This loads the path GeoJSON map data file from a local folder
+      // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+        $.getJSON('data/AB_Creek_Path_WGS_qgis.geojson', function(json) {
+            L.geoJson(json, {
+            // style path 
+            // http://leafletjs.com/examples/geojson/
+            style:{
+              "color": "#007F00",
+			        "weight": 5,
+            }
+            // add path layer to the map
+            }).addTo(map);
+      });
+	   
+    }
+    initMap();
+	
+	
+      // About button Informaiton Pannel open and close functionality using jQuery toggle effect and perfectsrollbar plugin
+	  // http://api.jquery.com/toggle/
+	  // https://noraesae.github.io/perfect-scrollbar/
+      $(function() {
+      $('#infoBox').perfectScrollbar();
+      });
+
+      $(document).ready(function(){
+      $("#infoButton").click(function(){
+        $("#infoClose").toggle();
+        $("#infoBox").toggle();  
+
+      });
+	  
+      $("#infoClose").click(function(){
+        $("#infoClose").toggle();
+        $("#infoBox").toggle();  
+      });
+	});	  
+
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"/>
+  <title>Lost Rivers of Toronto Map</title>
+  
+  <!-- Load Leaflet from a https CDN, not http. Look for updates at http://leafletjs.com/download.html -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+
+  <!-- Proj4Leaflet to support Web Mercator CRS -->	
+  <script src="Proj4Leaflet/lib/proj4-compressed.js"></script>
+  <script src="Proj4Leaflet/src/proj4leaflet.js"></script>
+  
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/flick/jquery-ui.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+  
+  <!-- load Font-Awesome used for some page elements like fa-chevron-down (down arrow) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
+
+  <!-- Load leaflet.extra-markers from local directory -->
+  <script src="markers/leaflet.extra-markers.min.js"></script>
+  <link rel="stylesheet" href="markers/leaflet.extra-markers.min.css">
+
+  <!-- load Bootsrap js and css  -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  
+  <!-- Load perfect-scrollbar -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery.perfect-scrollbar/0.6.10/css/perfect-scrollbar.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.perfect-scrollbar/0.6.10/js/min/perfect-scrollbar.jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.perfect-scrollbar/0.6.10/js/min/perfect-scrollbar.min.js"></script>
+  
+  
+  <style>
+
+        body {
+            padding: 0px;
+            margin: 0px;
+            font-family: "Helvetica", sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+		#image {
+			position: absolute;
+			z-index: 100; 
+			bottom:15px; 
+			right:0
+		}
+		
+    		/* Basemap slider CSS */
+    		#basemapslidercontainer {
+    		  position: absolute;
+    		  left: 10px;
+    		  bottom: 50px;
+          width: 320px;
+    		  z-index: 1000000;
+    		  background: #fff;
+    		  border-radius: 2px;
+          padding:20px;
+    		}
+    		
+    		#basemapslidercontainer p{
+    			font-weight:bold; 
+    			font-size:12px;
+    			margin:2px;
+    			display:inline-block
+    		}		
+    		  		
+    		#basemapslider{
+    		  height: 6px;
+    		  width: 100%;
+    		}
+    		
+        #slider{
+          height: 6px;
+          width: 100%;
+        }
+
+        /* Customize jQuery Slider UI - Handle color and shape*/  
+        .ui-slider .ui-slider-handle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+		
+        /* Handle color for river layer filter */  		
+		#slider > span {
+			background: #00C5CD;
+		}		
+
+        /* Handle color for tile overlay */  		
+		#basemapslider > span {
+			background: #808080;
+		}
+
+        /* Customizing Slider UI - Handle placement along slider to line up*/ 
+        .ui-slider-horizontal .ui-slider-handle {
+            top: 50%;
+            margin-top: -10px;
+        }
+
+        /* Style the counter*/
+        #yearCount{
+            border:0; 
+            color:#00C5CD; 
+            font-weight:bold; 
+            font-size:14px;
+            width:50px
+        }
+        
+        #console > label {
+            font-weight:bold; 
+            font-size:14px;
+        }
+
+        #sliderLegend {
+            width:100%;
+        }
+
+        /* Style the legend inside the sliderLegend div */
+        label_scale{
+            display: inline-block;
+            text-align:center;
+            font-size:10px;
+        }
+
+        /* Style the legend inside the sliderLegend div - ensures the first label appears over the slider start */
+        label_scale:first-child{
+            text-align:left;
+            margin-left:-10px;
+            margin-right:10px;
+        }
+
+        /* Style the legend inside the sliderLegend div - ensures the last label appears over the slider end */
+        label_scale:last-child{
+            text-align:right;
+            margin-right:-10px;
+            padding-left:10px;
+        }
+
+        #map > div.leaflet-control-container > div.leaflet-top.leaflet-left {
+          top:50px;
+        }
+    
+        #map > div.leaflet-control-container > div.leaflet-top.leaflet-right {
+          top:50px;
+        }
+
+        #narration {
+            position: absolute;
+            width: 30vw;
+            min-width: 300px;
+            right: 0px;
+            height: 100vh;
+            overflow: auto;
+            z-index: 99;
+            background: rgba(254,254,254, 1.0); /* to apply opacity background only. */
+            padding-top: 100px; /*Adjust if Title header needs more space */
+        }
+
+
+        #contents {
+            padding: 0%;
+            width: 100%;
+            margin-top: 0px; /*Adjust if Title header needs more space */
+            height: 100%; /* Adjust to fit max Description length, one setting for all; alternative is 100% */
+            overflow-y: scroll;
+            overflow-x: hidden;
+        }
+
+        #contents .space-at-the-top {
+            height: 30px;
+            margin: 0px;
+        }
+
+        #contents .space-at-the-bottom {
+            height: 600px;
+            margin: 0px;
+            text-align: center;
+            padding-top: 70px;
+        }
+
+        #chapter {
+            position: absolute;
+            z-index: 999;
+            margin: 10px;
+            display: block;
+            text-align: center;
+            color: #fff;
+        }
+
+        #title {
+            position: absolute;
+            right: 0px;
+          top:50px;
+            background-color: white;
+            width: 30vw;
+            min-width: 300px;
+            z-index: 100;
+            margin: 0px;
+            padding: 0px;
+            padding-bottom:10px
+        }
+
+        h3 {
+            margin-bottom: 0px;
+        }
+
+        .image-container {
+            /* margin + padding = imageContainerMargin in script.js */
+            /* Important for scrolling! */
+            margin: 25px 0 0 0;
+            padding: 25px 0 0 0;
+            text-align: center;
+        }
+
+        .image-container img {
+            height: auto;
+            width: auto;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+      /* Use EXIF data from the image */
+      image-orientation: from-image;
+            /* Three lines that center vertically */
+            position: relative;
+        }
+
+        .img-holder {
+        display:inline-block;
+            padding:10px;
+            width: 100%;
+        }
+
+        .title-text {
+            font-weight: bold;
+            text-align: center;
+            margin: 10px;
+        }
+
+        .chapter-header {
+            display: block;
+            text-align: center;
+            font-size: 150%;
+            font-weight:bold;
+            margin-top:15px
+        }
+
+        .caption {
+            font-size: 9pt;
+            padding:0 10px 0 10px;
+        }
+
+        .description {
+            text-align: justify;
+            font-size: 11pt;
+            padding: 30px;
+            position: relative;
+        }
+
+        .inFocus {
+            opacity: 1.0;
+            background-color: #f0f0f0;
+        }
+
+        .outFocus {
+            opacity: 0.3;
+            background-color: white;
+        }
+
+        /* Bootsrap */
+        .navbar {
+          width:100%;
+          margin-bottom:0;
+          position: fixed;
+          z-index: 1000;
+        }
+		
+		.container-fluid {
+		  padding-right:0;
+		}
+
+        #navbar2 > ul > li.active > a {
+          color: #fff;
+          font-weight: bold;
+          text-decoration: underline;
+		  opacity:1
+        }
+
+        #navbar2 > ul > li > a {
+          color: #fff;
+		  font-weight: bold;
+		  opacity:0.6
+        }
+		
+		#navbar2 > ul > li > a:hover {
+		  opacity:0.4
+        }
+
+        .navbar-brand {
+          padding: 0px;
+        }
+
+        .navbar-brand>img {
+          height: 100%;
+          width: auto;
+        }
+
+        .navbar-default .navbar-nav>.active>a, .navbar-default .navbar-nav>.active>a:focus, .navbar-default .navbar-nav>.active>a:hover {
+          background-color: transparent;
+        }
+
+        #navbar2 > ul {
+        margin-bottom:0
+        }
+              
+        /* About Button */
+        #infoButton {
+          position:absolute;
+          left: 150px;
+          top: 15px;
+          color: #000000;
+          font-weight:bold; 
+          cursor: pointer;
+        }
+        
+        #infoClose{
+          position: absolute;
+          width: 600px;
+          height:auto;
+          background:#fff;
+          z-index:1000002;
+          cursor: pointer;
+          color:#000;
+          text-align: center;
+          padding:8px;
+          display:none;
+          left: 0;
+          right: 0;
+          bottom:225px;
+          margin: auto;
+		  border-top-width: 1px;
+		  border-top-style: solid;
+		  border-top-color: #d3d3d3;
+        }
+
+        #infoBox{
+          position: absolute;
+          width: 600px;
+          height:auto;
+          background:#fff;
+          z-index:1000000;
+          color:#999999;
+          text-align: center;
+          padding:8px;
+          display:none;
+          top:100px;
+          left: 0;
+          right: 0;
+          bottom:260px;
+          margin: auto;
+        }
+        
+        #infoBox p {
+          margin: 5px;
+          margin-left:15px;
+          padding:0px;
+          opacity:1;
+          color:#000;
+          opacity:1;
+          text-align: left;
+        } 
+
+        /* Resize bootsrap and force collapse for Mobile and tablets */
+        @media (max-width: 1260px) {
+          .navbar-header {
+              float: none;
+          }
+          .navbar-left,.navbar-right {
+              float: none !important;
+          }
+          .navbar-toggle {
+              display: block;
+          }
+          .navbar-collapse {
+              border-top: 1px solid transparent;
+              box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+          }
+          .navbar-fixed-top {
+              top: 0;
+              border-width: 0 0 1px;
+          }
+          .navbar-collapse.collapse {
+              display: none!important;
+          }
+          .navbar-nav {
+              float: none!important;
+              margin-top: 7.5px;
+          }
+          .navbar-nav>li {
+              float: none;
+          }
+          .navbar-nav>li>a {
+              padding-top: 10px;
+              padding-bottom: 10px;
+          }
+          .collapse.in{
+              display:block !important;
+          }
+        }
+
+        /* Resize and position page elements and force collapse for Mobile and tablets */
+        @media (max-width: 768px) {
+          
+          ::-webkit-scrollbar {
+          display: none;
+          }
+
+          #map {
+          width: 100%;
+          height:80%;
+          }
+		  
+		  .leaflet-control-zoom {
+		  display: none;
+		  }
+		  
+          #title {
+          top:35%;
+          width: 100%;
+          }
+
+          #title > h3 {
+          font-size: 20px;
+          }  
+
+          #narration {
+          width: 100%;
+          top:35%;
+          min-width: 0;
+          padding-top:0;
+          padding:4px;
+          }
+
+          .description {
+          padding: 0;
+          padding-bottom: 10px;
+          }
+
+          #infoClose{
+          width: 100%; 
+          bottom:0;
+		  border-top-width: 1px;
+		  border-top-style: solid;
+		  border-top-color: #d3d3d3;		  
+          }
+
+          #infoBox{
+          width: 100%;
+          top:0;
+          bottom:35px;    
+          }
+          
+          #basemapslidercontainer {
+          bottom:0;
+          margin:0;
+          padding:20px;
+          width:100%;
+          left:0;
+          }
+
+          #basemapslider{
+          width:100%;
+          }
+        }   
+    
+  </style>
+
+</head>
+
+<body>
+<!-- Static navbar -->
+
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar2">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="http://www.lostrivers.ca" target="_blank"><img src="http://www.lostrivers.ca/img/logo.png" alt="Lost Rivers">
+        </a>
+      </div>
+    <p id="infoButton">ABOUT THE MAP</a></p>
+      <div id="navbar2" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav navbar-right">
+          <li class="active"><a href="disappearing.html" style="color:#000000;">DISAPPEARING RIVERS OF TORONTO</a></li>
+          <li ><a href="AshbridgeBay.html" style="background-color:#ff7800;">ASHBRIDGE'S BAY WATERSHED WALK</a></li>
+          <li ><a href="AshbridgeCreek.html" style="background-color:#007F00">ASHBRIDGE'S CREEK WALK</a></li>
+          <li ><a href="TomlinCreek.html" style="background-color:#551A8B;">TOMLIN CREEK WALK</a></li>
+        </ul>
+      </div>
+      <!--/.nav-collapse -->
+    </div>
+    <!--/.container-fluid -->
+  </nav>
+	  
+  <!-- Map container -->
+  <div id="map"></div>
+
+  <!-- Image -->
+  <div id="image">
+  <img src="Legend_image_edited.PNG">
+  </div>
+  
+  <!-- Opacity slider container -->
+  <div id="basemapslidercontainer">
+    
+  <!-- Counter that updates as slider is changed to declare selected value -->
+  <label class="control-label">Disappearing Rivers Slider: <br>Year River was last seen on a Map:</label>
+  <input type="text"  id="yearCount" readonly>
+    
+  <!-- Spacing -->
+  <br>
+  <br>
+  
+  <!-- jQuery Slider -->
+  <div id="slider" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"></div>
+  
+  <!-- Legend that appears below the slider -->
+  <div id="sliderLegend"></div>
+  
+  <!-- Spacing -->
+  <br>
+  <label class="control-label">Historical Map Overlay</label>
+  <br>
+  <!-- Slider labels -->
+  <p>HIDDEN</p><p style="right:10px; position: absolute">VISIBLE</p>
+  <!-- Slider  -->
+  <div id="basemapslider"></div>
+  </div>
+
+  <!-- More Info - About button Infobox -->
+    <div id='infoClose'><b>CLOSE</b>
+    </div>
+    <div id='infoBox' > 
+    <br>
+	<!-- Title -->
+    <H3 style="text-align: center;">About the map</H3>
+    <br>
+	<!-- Contents-->
+	    <p>This web map has been developed as a pilot project for Geohistory/Géohistoire, the Canadian Historical GIS Partnership Development Project  <a href="http://geohist.ca" target="_blank">geohist.ca.</a>on behalf of the Lost Rivers of Toronto Project <a href="http://www.lostrivers.ca" target="_blank">www.lostrivers.ca.</a>
+		</p>
+
+    <p>The historical map overlay used for reference is a map by A.P. Coleman: The Pleistocene of the Toronto region: Including the Toronto interglacial formation, created by the Province of Ontario Department of Mines in 1932, drawn on top of the Topographic Base map of 1931. The legend appears near the top left hand corner of the map. Noticeable features ​​include: the ​light orange area identified as "Iroquois sand and clay" and the darker orange boundary which demarcates the shoreline of glacial Lake Iroquois; and the "Gravel bars" (dark orange areas with red dots​) deposited along that shoreline.
+
+	</p>
+    </div>
+	
+
+  <script>
+    function initMap() {
+
+      // This creates the Leaflet map with a generic start point, because code at bottom automatically fits bounds to the rivers layer
+      var map = L.map('map', {
+			center: [0, 0],
+    		maxZoom: 17,
+    		minZoom: 12,
+      });
+
+      // This displays a base layer map (other options available)
+      // Using Carto Positron basemap
+      // https://leaflet-extras.github.io/leaflet-providers/preview/
+      //var lightAll = new L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+       //attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> //contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+     //}).addTo(map);
+	 
+	 // using Esri World Topo Map to provide useful topographic reference for drainage pattern
+  	 var Esri_WorldTopoMap = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+	}).addTo(map);
+	  
+    //jQuery Slider Widget http://api.jqueryui.com/slider/
+	  //Overlay layer and slider controls
+	  $("#basemapslider").slider({
+            animate: true,
+            value: 0.5,
+            min: 0,
+            max: 1,
+            step: 0.1,
+            slide: function (event, ui) {
+				// adjusting opactity on the mytile layer
+                mytile.setOpacity(ui.value);
+            }
+       });
+		
+	   // linking to the tiles created with QTiles in QGIS
+	   // the custom tiles are saved in a folder called "tiles"
+	   // var mytile =L.tileLayer('tiles/{z}/{x}/{y}.png', {
+        // tms: false,
+		// opacity: 0.5,
+        // errorTileUrl: 'tiles/missing.png',
+       // }).addTo(map);
+
+	// wms layer used to load historical overlay map from geoserver, replacing the QTile tiles above
+	var mytile = L.tileLayer.wms('http://opengeo.geog.utoronto.ca:8080/geoserver/lostrivers_wksp/wms', {
+		layers: 'lostrivers_wksp:G_3501_C5_Coleman_1932_rebuilt',
+		transparent: true,
+		opacity: 0.4,
+		format: 'image/png'
+	}).addTo(map);
+	   
+	// wms layer used to load the layer group for base map from Geoserver
+	var wmsLayer = L.tileLayer.wms('http://opengeo.geog.utoronto.ca:8080/geoserver/lostrivers_wksp/wms', {
+		layers: 'lostrivers_wksp:Lost_Rivers_base_layer_group',
+		transparent: true,
+		format: 'image/png'
+	}).addTo(map);
+
+	// declaring color breaks
+	// using methodology provided in the leaflet example: http://leafletjs.com/examples/choropleth/
+	function getColor(d) {
+    return d >= 2017 ? '#005CE6' :
+		   d >= 1949 ? '#FF0000' :
+		   d >= 1937 ? '#FF7F7F' :
+		   d >= 1931 ? '#FF9600' :
+		   d >= 1927 ? '#FFD900' :
+		   d >= 1921 ? '#FFFF00' :
+		   d >= 1913 ? '#98E600' :
+           d >= 1901 ? '#70A800' :
+           d >= 1890 ? '#A8A800' :
+           d >= 1872 ? '#A87000' :
+           d >= 1851 ? '#A80000' :
+           d >= 1827 ? '#730000' :
+           d >= 1802 ? '#000000' :
+                      '#000000';
+	}   
+	
+	// define a styling function for our GeoJSON layer so that its line color depends on feature.properties.lsatNTS
+	// breaks are created based on what are declared in the getcolor function above
+	function style(feature) {
+		return 	{
+            "color": getColor(feature.properties.lastNTS),
+            "weight":  3,
+          };
+	}
+	  
+    // loading the rivers geojson layer  
+    var rivers; 
+    // This loads the path GeoJSON map data file from a local folder
+    // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+      $.getJSON('data/BI_Lost_Rivers_20170705_WAMS_qgis.geojson', function(json) {
+		  // Declaring using the Proj4Leaflet geojson call so that can import geojson file using web mercator crs	  
+          rivers = L.Proj.geoJson(json, {
+          // style path 
+          // http://leafletjs.com/examples/geojson/
+          style: style,
+          // filtering layer using the lastNTS attribute 
+		  // Equal to or greater than the value
+          filter: function (feature, layer) {
+              return feature.properties.lastNTS >= "1802";
+          }
+          // add path layer to the map
+          });
+          // fits the map view to fit the bounds of the river layer when the map loads
+          map.fitBounds(rivers.getBounds());          
+
+          rivers.addTo(map);
+    });
+
+    // jQuery Slider Widget http://api.jqueryui.com/slider/
+    // Value is the default location of handle on slider
+	// Using range option to go from one handle to the slider max
+	// https://api.jqueryui.com/slider/#option-range
+	// valMap array contains the custom intervals that will be used to query the layer
+    var valMap = ["1802", "1827", "1830", "1834", "1842", "1848", "1851", "1852", "1853", "1857", "1858", "1862", "1863", "1868", "1872", "1875", "1876", "1882", "1884", "1885", "1888", "1889", "1890", "1892", "1893", "1894", "1901", "1902", "1903", "1909", "1910", "1913", "1915", "1918", "1921", "1927", "1931", "1932", "1937", "1942", "1949", "1950"];
+    $( "#slider" ).slider({
+        range: "max",
+        // Using the first value in the valMap array
+		min: 0,
+		// Using the last vale in the valMap array
+        max: valMap.length - 1,
+        // Change event captures when the the slider handle HAS MOVED location. Change event only updates/captured after the slider handle is moved.
+        change: function( event, ui ) {
+          // update the year counter based on the location/value of the handle on the slider
+          $( "#yearCount" ).val( valMap[ui.value] );
+          // leaflet geojson filter does not allow you to apply the filter dynamically after the layer has been imported to the map
+		  // must remove then readd the layer again with a new filter
+		  // first clears the layer from the map
+          rivers.clearLayers();
+		  // next readd the layer with the filter set using the valMap[ui.value]
+    		  $.getJSON('data/BI_Lost_Rivers_20170705_WAMS_qgis.geojson', function(json) {
+    			  // Declaring using the Proj4Leaflet geojson call so that can import geojson file using web mercator crs
+				  rivers = L.Proj.geoJson(json, {
+    			  // style path 
+    			  // http://leafletjs.com/examples/geojson/
+    			  style: style,
+    			  // filtering layer using the lastNTS attribute 
+    			  filter: function (feature, layer) {
+    				  return feature.properties.lastNTS >= valMap[ui.value];
+    			  }
+    			  // add path layer to the map
+    			  }).addTo(map);
+    		});
+
+        },
+        // Slide event captures when the the slider handle IS BEING MOVED location. Slide event updates/captured while the slider handle is being moved. 
+        // Data is too complex for this example to use slide events
+    });
+
+    // yearCount value, required to displace default value when the page loads
+	// Uses the first value from the array, in this case 1802
+    $( "#yearCount" ).val( valMap[0]);
+
+    // Legend to place labels below slider
+    // Items are the labels that will appear
+    // To update the legend only items variable needs to be updated
+    // Number of items must mach number of intervals, this example there are 12
+    // Start and end items must match the min and max declared for the slider
+      var items = ["1802", "1950"];
+
+      // Calculate the legth of the legend based on number of items declared to identify spacing required
+      // Do not change when updating the items variable
+    var length = 100 / (items.length - 1);
+      $.each(items, function(key,value){
+       
+     var spacing = length;
+        if(key === 0 || key === items.length-1)
+        spacing = length/2;
+        
+      // Updates sliderLegend div below the slider using spacing variable to set calculated label spacing width and include label value for the label
+      // Do not change when updating the items variable
+      $("#sliderLegend").append("<label_scale style='width: "+spacing+"%'>"+value+"</label_scale>");
+      });
+
+    }
+
+    initMap();
+
+      // About button Informaiton Pannel open and close functionality using jQuery toggle effect and perfectsrollbar plugin
+	  // http://api.jquery.com/toggle/
+	  // https://noraesae.github.io/perfect-scrollbar/
+      $(function() {
+      $('#infoBox').perfectScrollbar();
+      });
+
+      $(document).ready(function(){
+      $("#infoButton").click(function(){
+        $("#infoClose").toggle();
+        $("#infoBox").toggle();  
+
+      });
+    
+      $("#infoClose").click(function(){
+        $("#infoClose").toggle();
+        $("#infoBox").toggle();  
+      });
+     });  
+  </script>
+
+</body>
+</html>
