@@ -6,4 +6,8 @@ This repository holds code for the Open Source versions of the pilot projects fo
 The first web-mapping pilot project is the Disappearing Rivers of Toronto. This map uses a time-line slider to display changes in the river network of Toronto over time as streams were buried between 1802 and 1950, to make way for the course of urban development. This web-map was developed using Leaflet and the Time slider was adapted from the generic jQueryUI slider: https://api.jqueryui.com/slider/#option-range by using the Leaflet geojson filter option: http://leafletjs.com/reference-1.0.2.html#geojson-filter. GeoJSON files were generated for the overlay of rivers, and Boundless/Geoserver was used to serve base mapping. <br>
 The second web-mapping pilot project is a series of maps depicting three of the walking tours conducted by Lost Rivers of Toronto along the routes of buried river courses, in the Ashbridge's Bay area of Toronto. These web-maps were developed using Leaflet, adapting the leaflet-storymap template mounted on github by Jack Dougherty https://github.com/jackdougherty/leaflet-storymap. <br>
 
-The project web-maps can be seen here: http://mercator.geog.utoronto.ca/georia/lostrivers/
+The project web-maps can be seen here: http://mercator.geog.utoronto.ca/georia/lostrivers/ <br>
+
+Documents outlining the development of the files can be found on the project website: <br>
+http://geohist.ca/wp-content/uploads/2017/10/LostRivers_Disappearing_Rivers_Devt_OS.pdf <br>
+http://geohist.ca/wp-content/uploads/2017/10/LostRivers_Ashbridges_Maptour_Devt_OS.pdf <br>
