@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"/>
+  <title>Lost Rivers of Toronto Map</title>
+  
+  <!-- Load Leaflet from a https CDN, not http. Look for updates at http://leafletjs.com/download.html -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+
+  <!-- Proj4Leaflet to support Web Mercator CRS -->	
+  <script src="Proj4Leaflet/lib/proj4-compressed.js"></script>
+  <script src="Proj4Leaflet/src/proj4leaflet.js"></script>
+  
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/flick/jquery-ui.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+  
+  <!-- load Font-Awesome used for some page elements like fa-chevron-down (down arrow) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
+
+  <!-- Load leaflet.extra-markers from local directory -->
+  <script src="markers/leaflet.extra-markers.min.js"></script>
+  <link rel="stylesheet" href="markers/leaflet.extra-markers.min.css">
+  
+  <style>
+
+        body {
+            padding: 0px;
+            margin: 0px;
+            font-family: "Helvetica", sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+		
+    		/* Basemap slider CSS */
+    		#slidercontainer {
+    		  position: absolute;
+    		  left: 10px;
+    		  bottom: 50px;
+          width: 320px;
+    		  z-index: 1000000;
+    		  background: #fff;
+    		  border-radius: 2px;
+          padding:20px;
+    		}
+    		
+    		#slidercontainer p{
+    			font-weight:bold; 
+    			font-size:12px;
+    			margin:2px;
+    			display:inline-block
+    		}		
+    		  		    		
+        #slider{
+          height: 6px;
+          width: 100%;
+        }
+
+        /* Customize jQuery Slider UI - Handle color and shape*/  
+        .ui-slider .ui-slider-handle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+        }
+		
+        /* Handle color for river layer filter */  		
+    		#slider > span {
+    			background: #00C5CD;
+    		}		
+
+            /* Handle color for tile overlay */  		
+    		#basemapslider > span {
+    			background: #808080;
+    		}
+
+        /* Customizing Slider UI - Handle placement along slider to line up*/ 
+        .ui-slider-horizontal .ui-slider-handle {
+            top: 50%;
+            margin-top: -10px;
+        }
+
+        /* Style the counter*/
+        #yearCount{
+            border:0; 
+            color:#00C5CD; 
+            font-weight:bold; 
+            font-size:14px;
+            width:50px
+        }
+        
+        #console > label {
+            font-weight:bold; 
+            font-size:14px;
+        }
+
+        #sliderLegend {
+            width:100%;
+        }
+
+        /* Style the legend inside the sliderLegend div */
+        label_scale{
+            display: inline-block;
+            text-align:center;
+            font-size:10px;
+        }
+
+        /* Style the legend inside the sliderLegend div - ensures the first label appears over the slider start */
+        label_scale:first-child{
+            text-align:left;
+            margin-left:-10px;
+            margin-right:10px;
+        }
+
+        /* Style the legend inside the sliderLegend div - ensures the last label appears over the slider end */
+        label_scale:last-child{
+            text-align:right;
+            margin-right:-10px;
+            padding-left:10px;
+        }
+    
+  </style>
+
+</head>
+
+<body>  
+  <!-- Map container -->
+  <div id="map"></div>
+  
+  <!-- Filter slider container -->
+  <div id="slidercontainer">
+    
+  <!-- Counter that updates as slider is changed to declare selected value -->
+  <label class="control-label">Disappearing Rivers Slider: <br>Year River was last seen on a Map:</label>
+  <input type="text"  id="yearCount" readonly>
+    
+  <!-- Spacing -->
+  <br>
+  <br>
+  
+  <!-- jQuery Slider -->
+  <div id="slider" class="ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all"></div>
+  
+  <!-- Legend that appears below the slider -->
+  <div id="sliderLegend"></div>
+  
+  </div>
+
+  <script>
+    function initMap() {
+
+      // This creates the Leaflet map with a generic start point, because code at bottom automatically fits bounds to the rivers layer
+      var map = L.map('map', {
+			center: [0, 0],
+    		maxZoom: 17,
+    		minZoom: 12,
+      });
+
+      // This displays a base layer map (other options available)
+      // Using Carto Positron basemap
+      // https://leaflet-extras.github.io/leaflet-providers/preview/
+      //var lightAll = new L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+       //attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> //contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+     //}).addTo(map);
+	 
+	 // using Esri World Topo Map to provide useful topographic reference for drainage pattern
+  	 var Esri_WorldTopoMap = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+	}).addTo(map);
+	  
+    //jQuery Slider Widget http://api.jqueryui.com/slider/
+	  //Overlay layer and slider controls
+	  $("#basemapslider").slider({
+            animate: true,
+            value: 0.5,
+            min: 0,
+            max: 1,
+            step: 0.1,
+            slide: function (event, ui) {
+				// adjusting opactity on the mytile layer
+                mytile.setOpacity(ui.value);
+            }
+       });
+		
+	   // linking to the tiles created with QTiles in QGIS
+	   // the custom tiles are saved in a folder called "tiles"
+	   // var mytile =L.tileLayer('tiles/{z}/{x}/{y}.png', {
+        // tms: false,
+		// opacity: 0.5,
+        // errorTileUrl: 'tiles/missing.png',
+       // }).addTo(map);
+
+	// declaring color breaks
+	// using methodology provided in the leaflet example: http://leafletjs.com/examples/choropleth/
+	function getColor(d) {
+    return d >= 2017 ? '#005CE6' :
+    		   d >= 1949 ? '#FF0000' :
+    		   d >= 1937 ? '#FF7F7F' :
+    		   d >= 1931 ? '#FF9600' :
+    		   d >= 1927 ? '#FFD900' :
+    		   d >= 1921 ? '#FFFF00' :
+    		   d >= 1913 ? '#98E600' :
+           d >= 1901 ? '#70A800' :
+           d >= 1890 ? '#A8A800' :
+           d >= 1872 ? '#A87000' :
+           d >= 1851 ? '#A80000' :
+           d >= 1827 ? '#730000' :
+           d >= 1802 ? '#000000' :
+                      '#000000';
+	}   
+	
+	// define a styling function for our GeoJSON layer so that its line color depends on feature.properties.lsatNTS
+	// breaks are created based on what are declared in the getcolor function above
+	function style(feature) {
+		return 	{
+            "color": getColor(feature.properties.lastNTS),
+            "weight":  3,
+          };
+	}
+	  
+    // loading the rivers geojson layer  
+    var rivers; 
+    // This loads the path GeoJSON map data file from a local folder
+    // jQuery getJSON() method - http://api.jquery.com/jquery.getjson/
+      $.getJSON('data/BI_Lost_Rivers_20170705_WAMS_qgis.geojson', function(json) {
+		  // Declaring using the Proj4Leaflet geojson call so that can import geojson file using web mercator crs	  
+          rivers = L.Proj.geoJson(json, {
+          // style path 
+          // http://leafletjs.com/examples/geojson/
+          style: style,
+          // filtering layer using the lastNTS attribute 
+		  // Equal to or greater than the value
+          filter: function (feature, layer) {
+              return feature.properties.lastNTS >= "1802";
+          }
+          // add path layer to the map
+          });
+          // fits the map view to fit the bounds of the river layer when the map loads
+          map.fitBounds(rivers.getBounds());          
+
+          rivers.addTo(map);
+    });
+
+    // jQuery Slider Widget http://api.jqueryui.com/slider/
+    // Value is the default location of handle on slider
+	// Using range option to go from one handle to the slider max
+	// https://api.jqueryui.com/slider/#option-range
+	// valMap array contains the custom intervals that will be used to query the layer
+    var valMap = ["1802", "1827", "1830", "1834", "1842", "1848", "1851", "1852", "1853", "1857", "1858", "1862", "1863", "1868", "1872", "1875", "1876", "1882", "1884", "1885", "1888", "1889", "1890", "1892", "1893", "1894", "1901", "1902", "1903", "1909", "1910", "1913", "1915", "1918", "1921", "1927", "1931", "1932", "1937", "1942", "1949", "1950"];
+    $( "#slider" ).slider({
+        range: "max",
+        // Using the first value in the valMap array
+		min: 0,
+		// Using the last vale in the valMap array
+        max: valMap.length - 1,
+        // Change event captures when the the slider handle HAS MOVED location. Change event only updates/captured after the slider handle is moved.
+        change: function( event, ui ) {
+          // update the year counter based on the location/value of the handle on the slider
+          $( "#yearCount" ).val( valMap[ui.value] );
+          // leaflet geojson filter does not allow you to apply the filter dynamically after the layer has been imported to the map
+		  // must remove then readd the layer again with a new filter
+		  // first clears the layer from the map
+          rivers.clearLayers();
+		  // next readd the layer with the filter set using the valMap[ui.value]
+    		  $.getJSON('data/BI_Lost_Rivers_20170705_WAMS_qgis.geojson', function(json) {
+    			  // Declaring using the Proj4Leaflet geojson call so that can import geojson file using web mercator crs
+				  rivers = L.Proj.geoJson(json, {
+    			  // style path 
+    			  // http://leafletjs.com/examples/geojson/
+    			  style: style,
+    			  // filtering layer using the lastNTS attribute 
+    			  filter: function (feature, layer) {
+    				  return feature.properties.lastNTS >= valMap[ui.value];
+    			  }
+    			  // add path layer to the map
+    			  }).addTo(map);
+    		});
+
+        },
+        // Slide event captures when the the slider handle IS BEING MOVED location. Slide event updates/captured while the slider handle is being moved. 
+        // Data is too complex for this example to use slide events
+    });
+
+    // yearCount value, required to displace default value when the page loads
+	// Uses the first value from the array, in this case 1802
+    $( "#yearCount" ).val( valMap[0]);
+
+    // Legend to place labels below slider
+    // Items are the labels that will appear
+    // To update the legend only items variable needs to be updated
+    // Number of items must mach number of intervals, this example there are 12
+    // Start and end items must match the min and max declared for the slider
+      var items = ["1802", "1950"];
+
+      // Calculate the legth of the legend based on number of items declared to identify spacing required
+      // Do not change when updating the items variable
+    var length = 100 / (items.length - 1);
+      $.each(items, function(key,value){
+       
+     var spacing = length;
+        if(key === 0 || key === items.length-1)
+        spacing = length/2;
+        
+      // Updates sliderLegend div below the slider using spacing variable to set calculated label spacing width and include label value for the label
+      // Do not change when updating the items variable
+      $("#sliderLegend").append("<label_scale style='width: "+spacing+"%'>"+value+"</label_scale>");
+      });
+
+    }
+
+    initMap();
+
+  </script>
+
+</body>
+</html>

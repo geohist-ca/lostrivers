@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"/>
+  <title>Opacity Slider Template</title>
+  
+  <!-- Load Leaflet from a https CDN, not http. Look for updates at http://leafletjs.com/download.html -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.0.0-rc.2/dist/leaflet.js"></script>
+  
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.4/themes/flick/jquery-ui.css">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+  
+  <!-- load Font-Awesome used for some page elements like fa-chevron-down (down arrow) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css">
+
+  <!-- Load leaflet.extra-markers from local directory -->
+  <script src="markers/leaflet.extra-markers.min.js"></script>
+  <link rel="stylesheet" href="markers/leaflet.extra-markers.min.css">
+
+  
+  <style>
+
+        body {
+            padding: 0px;
+            margin: 0px;
+            font-family: "Helvetica", sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+    		/* Basemap slider CSS */
+    		#basemapslidercontainer {
+    		  position: absolute;
+    		  left: 10px;
+    		  bottom: 50px;
+    		  z-index: 1000000;
+    		  background: #fff;
+    		  border-radius: 2px;
+    		}
+    		
+    		#basemapslidercontainer p{
+    			font-weight:bold; 
+    			font-size:12px;
+    			margin:2px;
+    			display:inline-block
+    		}		
+    		
+    		/* Customize jQuery Slider UI - Handle color and shape*/  
+    		.ui-slider .ui-slider-handle {
+    			  width: 20px;
+    			  height: 20px;
+    			  background: #00C5CD;
+    			  border-radius: 50%;
+    			  border: none;
+    			  cursor: pointer;
+    		}
+    		
+    		#basemapslider{
+    		  margin: 5px 16px 10px 16px;
+    		  height: 10px;
+    		  width:200px;
+    		}
+    		
+
+        /* Resize and position page elements and force collapse for Mobile and tablets */
+        @media (max-width: 768px) {
+        
+          #basemapslidercontainer {
+          bottom:0;
+          margin:0;
+          padding:0;
+          width:100%;
+          left:0;
+		      position:fixed;
+          }
+
+          #basemapslider{
+          width:90%;
+          }
+        }  	
+		
+  </style>
+
+</head>
+
+<body> 
+
+  <!-- Opacity slider container -->
+  <div id="basemapslidercontainer">
+      <!-- Label -->
+      <label class="control-label">Historical Map Overlay</label>
+      <br>
+      <!-- Slider labels -->
+      <p>HIDDEN</p><p style="right:0; position: absolute">VISIBLE</p>
+      <!-- Slider  -->
+        <div id="basemapslider"></div>
+  </div>
+	
+  <!-- Map container -->
+  <div id="map">
+  </div>
+
+  <script>
+
+    function initMap() {
+
+      // This creates the Leaflet map with a generic start point, because code at bottom automatically fits bounds to all markers
+      var map = L.map('map', {
+        center: [43.658665, -79.386076],
+        zoom: 14,
+    		maxZoom: 17,
+    		minZoom: 14
+      });
+
+      // This displays a base layer map (other options available)
+      // Using Carto Positron basemap
+      // https://leaflet-extras.github.io/leaflet-providers/preview/
+      //var lightAll = new L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+       //attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> //contributors, &copy; <a href="http://cartodb.com/attributions">CartoDB</a>'
+     //}).addTo(map);
+	 
+	 var OpenStreetMap_HOT = L.tileLayer('http://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+		maxZoom: 19,
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Tiles courtesy of <a href="http://hot.openstreetmap.org/" target="_blank">Humanitarian OpenStreetMap Team</a>'
+	}).addTo(map);;
+	  
+	  //Overlay layer and slider controls
+	  $("#basemapslider").slider({
+            animate: true,
+            value: 0.5,
+            orientation: "horizontal",
+            min: 0,
+            max: 1,
+            step: 0.1,
+            slide: function (event, ui) {
+                mytile.setOpacity(ui.value);
+            }
+       });
+		
+     // linking to the tiles created with QTiles in QGIS
+     // the custom tiles are saved in a folder called "tiles"
+     // must set tile to use for missing tiles using errorTileUrl parameter
+	 // FOR GITHUB VERSION CHANGED SO TILES ARE ACCESSED FROM MERCATOR SERVER INSTEAD OF LOCAL OR RELATIVE PATH
+ //     var mytile =L.tileLayer('tiles/{z}/{x}/{y}.png', {
+		var mytile =L.tileLayer('http://mercator.geog.utoronto.ca/georia/LostRivers/leaflet-storymap_webtest/tiles/{z}/{x}/{y}.png', {
+		maxZoom: 17,
+        minZoom: 14,
+        attribution: 'Generated by QTiles',
+        opacity: 0.5,
+        errorTileUrl: 'tiles/missing.png'
+       }).addTo(map);
+
+      // This customizes link to view source code; add your own GitHub repository
+      map.attributionControl
+      .setPrefix('View <a href="http://github.com/jackdougherty/leaflet-storymap" target="_blank">code on GitHub</a>, created with <a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+
+	  // an image overlay that will be added to the overlays of a layer switcher
+      var image = L.imageOverlay(
+            'data/1882McMurrichPlan MDL.jpg',
+			// Top left then top right
+            [[40.712216, -74.22655], [40.773941, -74.12544]], {
+            opacity: .6
+      }).addTo(map);	  
+	   };
+
+	initMap();
+
+  </script>
+
+</body>
+</html>
